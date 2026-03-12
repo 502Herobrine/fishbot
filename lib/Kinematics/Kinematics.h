@@ -11,6 +11,15 @@ typedef struct
     int64_t last_encoder_tick; // 上一次编码器计数值
 
 } motor_param_t;
+// 定义一个结构体用于存储机器人位姿和速度
+typedef struct
+{
+    float x;
+    float y;
+    float angle;
+    float linear_speed;
+    float angle_speed;
+}odom_t;
 
 // 定义一个类处理机器人运动学
 class Kinematics
@@ -32,7 +41,15 @@ public:
     // 获取当前电动机速度
     int16_t get_motor_speed(uint8_t id);
 
+    // 更新里程计数据
+    void update_odom(uint16_t dt);
+    // 获取当前里程计数据
+    odom_t &get_odom();
+    // 将角度转换到 -pi 到 pi 之间
+    static void TransAngleInPi(float angle, float &out_angle);
+
 private:
+    odom_t odom_; // 存储里程计信息
     motor_param_t motor_param_[2]; // 存储两个电动机的参数
     uint64_t last_update_time_; // 上一次更新的时间，单位ms
     float wheel_distance_; // 轮子间距

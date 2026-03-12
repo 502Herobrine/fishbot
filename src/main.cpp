@@ -52,4 +52,5 @@ void loop()
   kinematics.update_motor_speed(millis(), encoders[0].getTicks(), encoders[1].getTicks()); // 更新电动机速度和编码器数据
   motor.updateMotorSpeed(0, pid_controller[0].update(kinematics.get_motor_speed(0))); // 更新电机0的速度
   motor.updateMotorSpeed(1, pid_controller[1].update(kinematics.get_motor_speed(1))); // 更新电机1的速度
+  Serial.printf("x=%f, y=%f, angle=%f\n", kinematics.get_odom().x, kinematics.get_odom().y, kinematics.get_odom().angle); // 打印当前位姿信息
 }

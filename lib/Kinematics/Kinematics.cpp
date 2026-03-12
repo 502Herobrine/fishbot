@@ -31,6 +31,9 @@ void Kinematics::update_motor_speed(uint64_t current_time, int32_t left_tick, in
     //轮子速度计算
     motor_param_[0].motor_speed = float(dtick1 * motor_param_[0].per_pulse_distance) / dt * 1000.0f;
     motor_param_[1].motor_speed = float(dtick2 * motor_param_[1].per_pulse_distance) / dt * 1000.0f;
+
+    // 更新里程计数据
+    update_odom(dt);
 }
 
 /**
@@ -55,4 +58,43 @@ void Kinematics::kinematics_forward(float left_speed, float right_speed, float &
 void Kinematics::kinematics_inverse(float linear_speed, float angle_speed, float &out_left_speed, float &out_right_speed) {
     out_left_speed = linear_speed - angle_speed * wheel_distance_ / 2.0f;
     out_right_speed = linear_speed + angle_speed * wheel_distance_ / 2.0f;
+}
+
+
+odom_t &Kinematics::get_odom() {
+    return odom_;
+}
+
+//用于将角度转换到 -pi 到 pi 之间
+void Kinematics::TransAngleInPi(float angle, float &out_angle) {
+    // 如果 angle 大于 pi，则减去 2*pi
+    if (angle > PI) {
+        out_angle = angle - 2 * PI;
+    }
+    // 如果 angle 小于 -pi，则加上 2*pi
+    else if (angle < -PI) {
+        out_angle = angle + 2 * PI;
+    }
+}
+
+/**
+     * @brief 更新里程计数据，根据当前电动机速度和上次更新以来经过的时间 dt 计算机器人位姿和速度
+     * @param dt 上次更新以来经过的时间，单位ms
+     */
+void Kinematics::update_odom(uint16_t dt) {
+    float dt_s =(float)dt / 1000.0f; // 将 dt 转换为秒
+    // 运动学正解，计算线速度和角速度
+    kinematics_forward(motor_param_[0].motor_speed, motor_param_[1].motor_speed, odom_.linear_speed, odom_.angle_speed);
+    // 转换线速度单位
+    odom_.linear_speed /= 1000.0f;
+
+    // 计算当前角度
+    odom_.angle += odom_.angle_speed * dt_s;
+    // 将角度值 odom_.yaw 转换到 -pi 到 pi 之间
+    Kinematics::TransAngleInPi(odom_.angle, odom_.angle);
+
+    // 计算机器人移动距离和在两轴上的分量并进行累积
+    float delta_distance = odom_.linear_speed * dt_s;
+    odom_.x += delta_distance * std::cos(odom_.angle);
+    odom_.y += delta_distance * std::sin(odom_.angle);
 }
