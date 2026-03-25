@@ -10,6 +10,8 @@
 #include <rclc/rclc.h>
 #include <rclc/executor.h>
 #include <geometry_msgs/msg/twist.h>
+#include <nav_msgs/msg/odometry.h>
+#include <micro_ros_utilities/string_utilities.h>
 
 Esp32McpwmMotor motor; // 创建一个名为motor的对象，用于控制电机
 Esp32PcntEncoder encoders[2]; // 创建一个数组用于存储两个编码器
@@ -28,6 +30,9 @@ rclc_executor_t executor; // 执行器，用于管理订阅和计时器回调的
 rcl_node_t node; // 节点
 rcl_subscription_t subscriber; // 订阅者
 geometry_msgs__msg__Twist sub_msg; // 存储接收到的速度消息
+rcl_publisher_t publisher; // 发布者
+nav_msgs__msg__Odometry odom_msg; // 存储要发布的里程计消息
+rcl_timer_t timer; // 定时器，可以定时调用某个函数
 
 void twist_callback(const void *msg_in) {
     // 将接收到的消息指针转化为 geometry_msgs__msg__Twist 类型
@@ -39,6 +44,36 @@ void twist_callback(const void *msg_in) {
                                  out_left_speed, out_right_speed);
     pid_controller[0].update_target(out_left_speed);
     pid_controller[1].update_target(out_right_speed);
+}
+
+// 在定时器回调函数中完成话题发布
+void callback_publisher(rcl_timer_t *timer, int64_t last_call_time) {
+    odom_t odom = kinematics.get_odom();      // 获取里程计数据
+    int64_t stamp = rmw_uros_epoch_millis();  // 获取当前系统时间 (毫秒)
+
+    // 设置消息的时间戳
+    odom_msg.header.stamp.sec = static_cast<int32_t>(stamp / 1000); // 秒部分
+    // 纳秒部分：取毫秒余数并转换为纳秒
+    odom_msg.header.stamp.nanosec = static_cast<uint32_t>((stamp % 1000) * 1e6);
+
+    // 设置位置（Position）
+    odom_msg.pose.pose.position.x = odom.x;
+    odom_msg.pose.pose.position.y = odom.y;
+
+    // 将偏航角（Yaw）转换为四元数（Orientation）
+    odom_msg.pose.pose.orientation.w = cos(odom.angle * 0.5);
+    odom_msg.pose.pose.orientation.x = 0;
+    odom_msg.pose.pose.orientation.y = 0;
+    odom_msg.pose.pose.orientation.z = sin(odom.angle * 0.5);
+
+    // 设置速度（Twist）
+    odom_msg.twist.twist.angular.z = odom.angle_speed;
+    odom_msg.twist.twist.linear.x = odom.linear_speed;
+
+    // 发布里程计话题
+    if (rcl_publish(&odom_publisher, &odom_msg, NULL) != RCL_RET_OK) {
+        Serial.printf("error: odom publisher failed!\n");
+    }
 }
 
 // 单独创建一个任务运行 micro-ROS , 相当于一个线程
@@ -55,9 +90,27 @@ void micro_ros_task(void *parameter) {
   // 4. 初始化节点 fishbot_motion_control
   rclc_node_init_default(&node, "fishbot_motion_control", "", &support);
   // 5. 初始化订阅者并添加到执行器中
-  unsigned int num_handles = 0+1;
+  unsigned int num_handles = 0+2;
   rclc_executor_init(&executor, &support.context, num_handles, &allocator);
   rclc_executor_add_subscription(&executor, &subscriber, &sub_msg, twist_callback, ON_NEW_DATA);
+  // 6. 初始化发布者和定时器
+  odom_msg.header.frame_id = 
+      micro_ros_string_utilities_set(odom_msg.header.frame_id, "odom");
+  odom_msg.child_frame_id = 
+      micro_ros_string_utilities_set(odom_msg.child_frame_id, "base_footprint");
+  rclc_publisher_init_best_effort(
+      &odom_publisher, &node,
+      ROSIDL_GET_MSG_TYPE_SUPPORT(nav_msgs, msg, Odometry), "/odom");
+  // 7. 时间同步
+  while (!rmw_uros_epoch_synchronized()) {  // 如果没有同步
+      rmw_uros_sync_session(1000);  // 尝试进行时间同步
+      delay(10);
+  }
+  // 8. 创建定时器，间隔 50 ms 发布调用一次 callback_publisher 发布里程计话题
+  rclc_timer_init_default(&timer, &support, RCL_MS_TO_NS(50), callback_publisher);
+  // 将定时器添加到执行器中
+  rclc_executor_add_timer(&executor, &timer);
+
   // 循环执行器
   rclc_executor_spin(&executor);
 }
