@@ -9,6 +9,7 @@
 #include <rcl/rcl.h>
 #include <rclc/rclc.h>
 #include <rclc/executor.h>
+#include <geometry_msgs/msg/twist.h>
 
 Esp32McpwmMotor motor; // 创建一个名为motor的对象，用于控制电机
 Esp32PcntEncoder encoders[2]; // 创建一个数组用于存储两个编码器
@@ -25,6 +26,20 @@ rcl_allocator_t allocator; // 内存分配器
 rclc_support_t support; // 用于存储时钟、内存分配器和上下文，提供支持
 rclc_executor_t executor; // 执行器，用于管理订阅和计时器回调的执行
 rcl_node_t node; // 节点
+rcl_subscription_t subscriber; // 订阅者
+geometry_msgs__msg__Twist sub_msg; // 存储接收到的速度消息
+
+void twist_callback(const void *msg_in) {
+    // 将接收到的消息指针转化为 geometry_msgs__msg__Twist 类型
+    const geometry_msgs__msg__Twist *twist_msg =
+        (const geometry_msgs__msg__Twist *)msg_in;
+
+    // 运动学逆解并设置速度
+    kinematics.kinematic_inverse(twist_msg->linear.x * 1000, twist_msg->angular.z,
+                                 out_left_speed, out_right_speed);
+    pid_controller[0].update_target(out_left_speed);
+    pid_controller[1].update_target(out_right_speed);
+}
 
 // 单独创建一个任务运行 micro-ROS , 相当于一个线程
 void micro_ros_task(void *parameter) {
@@ -39,9 +54,10 @@ void micro_ros_task(void *parameter) {
   rclc_support_init(&support, 0, NULL, &allocator);
   // 4. 初始化节点 fishbot_motion_control
   rclc_node_init_default(&node, "fishbot_motion_control", "", &support);
-  // 5. 初始化执行器
-  unsigned int num_handles = 0;
+  // 5. 初始化订阅者并添加到执行器中
+  unsigned int num_handles = 0+1;
   rclc_executor_init(&executor, &support.context, num_handles, &allocator);
+  rclc_executor_add_subscription(&executor, &subscriber, &sub_msg, twist_callback, ON_NEW_DATA);
   // 循环执行器
   rclc_executor_spin(&executor);
 }
