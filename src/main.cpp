@@ -78,7 +78,7 @@ void callback_publisher(rcl_timer_t *timer, int64_t last_call_time) {
 void micro_ros_task(void *parameter) {
   // 1. 设置传输协议并延时等待设置完成
   IPAddress agent_ip;
-  agent_ip.fromString("10.181.161.70"); // 替换为你自己主机的 IP 地址
+  agent_ip.fromString("192.168.10.5"); // 替换为你自己主机的 IP 地址
   set_microros_wifi_transports("NBclass", "3116Herobrine", agent_ip, 8888);
   delay(2000);
   // 2. 初始化内存分配器
@@ -135,8 +135,8 @@ void setup()
   pid_controller[1].update_pid(0.625, 0.125, 0.00); // 设置第二个PID控制器的参数
   pid_controller[0].out_limit(-100, 100); 
   pid_controller[1].out_limit(-100, 100);
-  pid_controller[0].update_target(100);
-  pid_controller[1].update_target(100);
+  pid_controller[0].update_target(0);
+  pid_controller[1].update_target(0);
 
   // 5. 初始化轮子间距和电动机参数
   kinematics.set_wheel_distance(175.0f);
