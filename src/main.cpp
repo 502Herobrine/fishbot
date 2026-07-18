@@ -79,7 +79,7 @@ void micro_ros_task(void *parameter) {
   // 1. 设置传输协议并延时等待设置完成
   IPAddress agent_ip;
   agent_ip.fromString("192.168.10.5"); // 替换为你自己主机的 IP 地址
-  set_microros_wifi_transports("NBclass", "3116Herobrine", agent_ip, 8888);
+  set_microros_wifi_transports("CMCC-KDdy", "3116Herobrine", agent_ip, 8888);
   delay(2000);
   // 2. 初始化内存分配器
   allocator = rcl_get_default_allocator();
