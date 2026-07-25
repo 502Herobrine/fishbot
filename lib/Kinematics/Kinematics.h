@@ -40,6 +40,12 @@ public:
     void update_motor_speed(uint64_t current_time, int32_t left_tick, int32_t right_tick);
     // 获取当前电动机速度
     int16_t get_motor_speed(uint8_t id);
+    /**
+     * @brief 获取指定电动机从编码器开始计数后累计行驶的距离
+     * @param id 电动机编号，0表示左轮，1表示右轮
+     * @return 编码器累计计数对应的轮子行驶距离，单位mm
+     */
+    float get_motor_distance(uint8_t id);
 
     // 更新里程计数据
     void update_odom(uint16_t dt);

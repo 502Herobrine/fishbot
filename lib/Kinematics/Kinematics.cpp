@@ -12,6 +12,16 @@ int16_t Kinematics::get_motor_speed(uint8_t id) {
 }
 
 /**
+ * @brief 获取指定电动机从编码器开始计数后累计行驶的距离
+ * @param id 电动机编号，0表示左轮，1表示右轮
+ * @return 编码器累计计数对应的轮子行驶距离，单位mm
+ */
+float Kinematics::get_motor_distance(uint8_t id) {
+    // last_encoder_tick已经由update_motor_speed保存，不需要在主程序中重复保存编码器计数
+    return motor_param_[id].last_encoder_tick * motor_param_[id].per_pulse_distance;
+}
+
+/**
      * @brief 更新电动机速度和编码器数据
      * @param current_time 当前时间，单位ms
      * @param left_tick 左轮编码器计数值
