@@ -22,6 +22,9 @@ PlatformIO ESP32 固件项目。它记录项目所有者对代码复用、库组
 
 ## 2. 项目结构和职责
 
+- 配套 ROS 2 上位机工作空间根目录为
+  `/home/nbclass/SRTP/fishbot_ws`。需要确认 URDF、Gazebo、launch、TF、QoS 或导航行为
+  时，必须到该目录阅读实际包和配置，不要在单片机工程中猜测上位机实现。
 - `platformio.ini` 是当前构建入口，环境为 `fishibot`、ESP32 DevKit、Arduino 框架、
   `micro_ros_platformio` Wi-Fi transport。构建配置变更必须说明对固件、依赖下载和烧录
   的影响。
@@ -124,4 +127,3 @@ PlatformIO ESP32 固件项目。它记录项目所有者对代码复用、库组
    和频率；再观察 Gazebo 的 `/gazebo_joint_states`。
 6. 报告中区分“编译通过”“串口初始化通过”“micro-ROS 已连接”和“真实轮子/Gazebo
    已实测”。没有执行过的硬件动作不能描述为已验证。
-
