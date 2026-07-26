@@ -257,19 +257,19 @@ void setup()
 void loop()
 {
   delay(10); // 等待10毫秒
-  float left_motor_output;
-  float right_motor_output;
+//   float left_motor_output;
+//   float right_motor_output;
   odom_t odom;
 
   // 在同一个临界区内更新运动学状态、读取轮速并计算PID输出，避免micro-ROS任务读到更新一半的数据
   xSemaphoreTake(motion_control_mutex, portMAX_DELAY);
   kinematics.update_motor_speed(millis(), encoders[0].getTicks(), encoders[1].getTicks()); // 更新电动机速度和编码器数据
-  left_motor_output = pid_controller[0].update(kinematics.get_motor_speed(0));
-  right_motor_output = pid_controller[1].update(kinematics.get_motor_speed(1));
+//   left_motor_output = pid_controller[0].update(kinematics.get_motor_speed(0));
+//   right_motor_output = pid_controller[1].update(kinematics.get_motor_speed(1));
   odom = kinematics.get_odom();
   xSemaphoreGive(motion_control_mutex);
 
-  motor.updateMotorSpeed(0, left_motor_output); // 更新电机0的速度
-  motor.updateMotorSpeed(1, right_motor_output); // 更新电机1的速度
+//   motor.updateMotorSpeed(0, left_motor_output); // 更新电机0的速度
+//   motor.updateMotorSpeed(1, right_motor_output); // 更新电机1的速度
   Serial.printf("x=%f, y=%f, angle=%f\n", odom.x, odom.y, odom.angle); // 打印当前位姿信息
 }
